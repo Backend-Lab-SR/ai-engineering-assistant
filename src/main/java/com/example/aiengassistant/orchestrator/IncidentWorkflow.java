@@ -6,6 +6,7 @@ import com.example.aiengassistant.agent.RCAAgent;
 import com.example.aiengassistant.agent.RecommendationAgent;
 import com.example.aiengassistant.agent.RetrievalAgent;
 import com.example.aiengassistant.agent.ReviewerAgent;
+import com.example.aiengassistant.model.AnalysisReport;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -33,17 +34,25 @@ public class IncidentWorkflow {
         this.reviewerAgent = reviewerAgent;
     }
 
-    public String analyze(String question) {
+    public AnalysisReport analyze(String question) {
         String deploymentSummary = retrievalAgent.retrieveContext(question);
         String logSummary = logAnalysisAgent.analyzeLogs("checkout-service");
         String metricSummary = metricAnalysisAgent.analyzeMetrics("checkout-service");
         String rootCause = rcaAgent.analyzeRootCause(deploymentSummary, logSummary, metricSummary);
         String recommendations = recommendationAgent.generateRecommendations(rootCause);
 
-        String analysisReport = deploymentSummary + " " + logSummary + " " + metricSummary
+        String reportText = deploymentSummary + " " + logSummary + " " + metricSummary
                 + " " + rootCause + " " + recommendations;
-        String review = reviewerAgent.review(analysisReport);
+        String confidence = reviewerAgent.review(reportText);
 
-        return analysisReport + " " + review;
+        AnalysisReport report = new AnalysisReport();
+        report.setQuestion(question);
+        report.setDeploymentSummary(deploymentSummary);
+        report.setLogSummary(logSummary);
+        report.setMetricSummary(metricSummary);
+        report.setRootCause(rootCause);
+        report.setRecommendations(recommendations);
+        report.setConfidence(confidence);
+        return report;
     }
 }
